@@ -1,0 +1,29 @@
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev libgl1 libglib2.0-0 curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3 /usr/bin/python
+
+WORKDIR /app
+
+COPY services/training/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt \
+    --index-url https://download.pytorch.org/whl/cu124
+
+COPY src/ /app/src/
+COPY services/training/app.py /app/app.py
+
+RUN mkdir -p /shared/models /shared/output /shared/tmp
+
+ENV MODELS_DIR=/shared/models \
+    OUTPUT_DIR=/shared/output \
+    TEMP_DIR=/shared/tmp \
+    SRC_DIR=/app
+
+EXPOSE 8001
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]

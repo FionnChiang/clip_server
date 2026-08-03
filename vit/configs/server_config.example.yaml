@@ -1,0 +1,36 @@
+# Layout Classifier - Server Configuration
+# 
+# Usage:
+#   cp configs/server_config.example.yaml configs/server_config.yaml
+#   Then edit server_config.yaml with your actual credentials.
+# 
+# server_config.yaml is git-ignored — never commit real passwords or keys.
+
+server:
+  frontend_dist: ../frontend/dist
+  host: 0.0.0.0
+  port: 8000
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""                          # Your MySQL password
+  database: layout_classifier
+  pool_size: 10
+  pool_recycle: 3600
+
+s3:
+  endpoint: ""                          # Leave empty for AWS S3; set for MinIO / Aliyun OSS
+  access_key: ""                        # Your S3 Access Key ID
+  secret_key: ""                        # Your S3 Secret Access Key
+  bucket: layout-classifier
+  region: us-east-1
+  use_ssl: true
+
+services:
+  training_url: http://127.0.0.1:8001   # Training service (container or standalone)
+  inference_url: http://127.0.0.1:8002  # Inference service (container or standalone)
+
+training:
+  temp_dir: ../tmp

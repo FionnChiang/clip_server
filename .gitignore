@@ -1,0 +1,53 @@
+# === Model files (large binary, not for VCS) ===
+/models/
+
+# === Training output (checkpoints, history) ===
+/output/
+
+# === Config with secrets (keep example template instead) ===
+vit/configs/server_config.yaml
+
+# === Temporary files ===
+/tmp/
+
+# === Raw data (large, possibly sensitive) ===
+/data/
+
+# === Python ===
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+
+# === Node / Frontend ===
+**/node_modules/
+vit/frontend/dist/
+vit/frontend/package-lock.json
+
+# === Environment ===
+.env
+.env.*
+.venv/
+venv/
+.conda/
+
+# === OS generated ===
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# === IDE / Editor ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Docker / Logs ===
+*.log
+
+# === Jupyter ===
+.ipynb_checkpoints/

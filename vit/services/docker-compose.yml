@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../output:/shared/output
+      - ../models:/shared/models:ro
+      - ../configs:/shared/configs:ro
+    environment:
+      - TRAINING_SERVICE_URL=http://training:8001
+      - INFERENCE_SERVICE_URL=http://inference:8002
+    depends_on:
+      - training
+      - inference
+    restart: unless-stopped
+
+  training:
+    build:
+      context: ..
+      dockerfile: services/training/Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../output:/shared/output
+      - ../models:/shared/models:ro
+      - ../src:/app/src:ro
+      - training_tmp:/shared/tmp
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  inference:
+    build:
+      context: ..
+      dockerfile: services/inference/Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ../output:/shared/output
+      - ../src:/app/src:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  training_tmp:
