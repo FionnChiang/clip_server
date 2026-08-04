@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   backend:
+    platform: linux/amd64
     build:
       context: ..
       dockerfile: server/Dockerfile
@@ -20,6 +21,7 @@ services:
     restart: unless-stopped
 
   training:
+    platform: linux/amd64
     build:
       context: ..
       dockerfile: services/training/Dockerfile
@@ -40,6 +42,7 @@ services:
     restart: unless-stopped
 
   inference:
+    platform: linux/amd64
     build:
       context: ..
       dockerfile: services/inference/Dockerfile

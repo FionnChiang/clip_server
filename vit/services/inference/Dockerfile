@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+FROM --platform=linux/amd64 nvidia/cuda:12.4.0-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1
 
@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 WORKDIR /app
 
 COPY services/inference/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt --index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir -r /app/requirements.txt --extra-index-url https://download.pytorch.org/whl/cu124
 
 COPY src/ /app/src/
 COPY services/inference/app.py /app/app.py
