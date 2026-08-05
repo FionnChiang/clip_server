@@ -23,7 +23,6 @@ vit/configs/server_config.yaml
 # === Node / Frontend ===
 **/node_modules/
 vit/frontend/dist/
-vit/frontend/package-lock.json
 
 # === Environment ===
 .env
