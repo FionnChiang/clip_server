@@ -37,7 +37,10 @@ class ServerConfig:
 
     @property
     def frontend_dist(self) -> str:
-        return self._data.get("server", {}).get("frontend_dist", "../frontend/dist")
+        env_val = os.environ.get("FRONTEND_DIST")
+        if env_val:
+            return env_val
+        return self._data.get("server", {}).get("frontend_dist", "frontend/dist")
 
     # --- MySQL ---
     @property

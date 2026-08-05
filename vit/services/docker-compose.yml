@@ -11,7 +11,10 @@ services:
     volumes:
       - ../output:/shared/output
       - ../models:/shared/models:ro
-      - ../configs:/shared/configs:ro
+      - ../server:/app/server
+      - ../src:/app/src
+      - ../configs:/app/configs
+      - ../frontend/dist:/app/frontend/dist
     environment:
       - TRAINING_SERVICE_URL=http://training:8001
       - INFERENCE_SERVICE_URL=http://inference:8002
@@ -32,13 +35,13 @@ services:
       - ../models:/shared/models:ro
       - ../src:/app/src:ro
       - training_tmp:/shared/tmp
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
     restart: unless-stopped
 
   inference:
@@ -51,14 +54,22 @@ services:
     volumes:
       - ../output:/shared/output
       - ../src:/app/src:ro
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
     restart: unless-stopped
+
+  frontend-build:
+    image: node:18
+    working_dir: /app
+    command: >
+      sh -c "npm install --registry=https://registry.npmmirror.com && npm run build"
+    volumes:
+      - ../frontend:/app
 
 volumes:
   training_tmp:

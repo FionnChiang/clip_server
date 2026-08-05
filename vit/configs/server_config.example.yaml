@@ -7,7 +7,7 @@
 # server_config.yaml is git-ignored — never commit real passwords or keys.
 
 server:
-  frontend_dist: ../frontend/dist
+  frontend_dist: frontend/dist
   host: 0.0.0.0
   port: 8000
 
