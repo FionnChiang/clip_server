@@ -1,11 +1,16 @@
 import client from './client';
-import type { PredictionResult } from '../types';
+import type {
+  PredictionResult, DocumentPrediction, DocumentTopK,
+} from '../types';
+
+export type PredictResponse = PredictionResult | DocumentPrediction;
+export type PredictTopKResponse = { results: PredictionResult[] } | DocumentTopK;
 
 export async function predict(
   projectId: string,
   file: File,
   modelId?: string
-): Promise<PredictionResult> {
+): Promise<PredictResponse> {
   const formData = new FormData();
   formData.append('file', file);
   if (modelId) formData.append('model_id', modelId);
@@ -21,7 +26,7 @@ export async function predictTopK(
   file: File,
   k: number = 3,
   modelId?: string
-): Promise<{ results: PredictionResult[] }> {
+): Promise<PredictTopKResponse> {
   const formData = new FormData();
   formData.append('file', file);
   if (modelId) formData.append('model_id', modelId);

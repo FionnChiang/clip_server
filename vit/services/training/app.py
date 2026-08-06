@@ -289,6 +289,7 @@ async def _run_training(
             "model": model_cfg,
             "training": training_cfg,
             "output": {"dir": output_dir, "model_name": f"{job_id}.pth"},
+            "calibration": config.get("calibration", {}),
         }
 
         class CustomTrainer(Trainer):
@@ -366,6 +367,11 @@ async def _run_training(
         )
         trainer.train()
 
+        # 温度校准 + 置信度拒绝阈值（自动写入 checkpoint 的 calibration 字段）
+        calibration = {}
+        if config.get("calibration", {}).get("enabled", True):
+            calibration = trainer.calibrate() or {}
+
         # Save checkpoint
         best_ckpt = Path(output_dir) / "best_model.pth"
         asyncio.run(_broadcast(job_id, {
@@ -376,6 +382,7 @@ async def _run_training(
                 "best_epoch": trainer.best_epoch,
                 "checkpoint_path": str(best_ckpt),
                 "output_dir": output_dir,
+                "calibration": calibration,
             }
         }))
 

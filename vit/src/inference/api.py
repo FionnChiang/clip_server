@@ -17,6 +17,10 @@ class PredictionResult(BaseModel):
     index: int
     confidence: float
     probabilities: dict[str, float]
+    rejected: bool = False
+    reason: Optional[str] = None
+    original_category: Optional[str] = None
+    original_index: Optional[int] = None
 
 
 class TopKResult(BaseModel):
@@ -26,18 +30,43 @@ class TopKResult(BaseModel):
 predictor: Optional[LayoutPredictor] = None
 
 
-def create_app(checkpoint_path: Optional[str] = None) -> FastAPI:
+def _env_float(name: str, default: Optional[float]) -> Optional[float]:
+    value = os.environ.get(name)
+    if value is None or value == "":
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+def create_app(
+    checkpoint_path: Optional[str] = None,
+    confidence_threshold: Optional[float] = None,
+    margin_threshold: Optional[float] = None,
+    temperature: Optional[float] = None,
+) -> FastAPI:
     global predictor
 
     if checkpoint_path is None:
         checkpoint_path = os.environ.get("CHECKPOINT_PATH", "output/best_model.pth")
+    confidence_threshold = _env_float("CONFIDENCE_THRESHOLD", confidence_threshold)
+    margin_threshold = _env_float("MARGIN_THRESHOLD", margin_threshold)
+    temperature = _env_float("TEMPERATURE", temperature)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         global predictor
-        predictor = LayoutPredictor(checkpoint_path)
+        predictor = LayoutPredictor(
+            checkpoint_path,
+            confidence_threshold=confidence_threshold,
+            margin_threshold=margin_threshold,
+            temperature=temperature,
+        )
         print(f"Model loaded. Categories: {predictor.categories}")
         print(f"Device: {predictor.device}")
+        print(f"Calibration: T={predictor.temperature}, "
+              f"conf_th={predictor.confidence_threshold}, margin_th={predictor.margin_threshold}")
         yield
 
     app = FastAPI(
@@ -85,6 +114,18 @@ def create_app(checkpoint_path: Optional[str] = None) -> FastAPI:
     return app
 
 
-def serve(checkpoint_path: str, host: str = "0.0.0.0", port: int = 8000):
-    app = create_app(checkpoint_path)
+def serve(
+    checkpoint_path: str,
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    confidence_threshold: Optional[float] = None,
+    margin_threshold: Optional[float] = None,
+    temperature: Optional[float] = None,
+):
+    app = create_app(
+        checkpoint_path,
+        confidence_threshold=confidence_threshold,
+        margin_threshold=margin_threshold,
+        temperature=temperature,
+    )
     uvicorn.run(app, host=host, port=port)

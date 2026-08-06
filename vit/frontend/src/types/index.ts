@@ -83,6 +83,39 @@ export interface PredictionResult {
   index: number;
   confidence: number;
   probabilities: Record<string, number>;
+  rejected: boolean;
+  reason: string | null;
+  original_category: string;
+  original_index: number;
+}
+
+export interface PagePrediction {
+  page: number;
+  category: string;
+  index: number;
+  confidence: number;
+  probabilities: Record<string, number>;
+  rejected: boolean;
+  reason: string | null;
+  original_category: string;
+  original_index: number;
+}
+
+export interface DocumentPrediction {
+  filename: string;
+  page_count: number;
+  results: PagePrediction[];
+}
+
+export interface PageTopK {
+  page: number;
+  top_k: PredictionResult[];
+}
+
+export interface DocumentTopK {
+  filename: string;
+  page_count: number;
+  results: PageTopK[];
 }
 
 export interface MySQLConfig {

@@ -11,6 +11,10 @@ FROM --platform=linux/amd64 python:3.12-slim
 
 WORKDIR /app
 
+# CJK 字体：OFD 文本渲染依赖（easyofd 使用系统中文字体）
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt \
     -i https://pypi.tuna.tsinghua.edu.cn/simple

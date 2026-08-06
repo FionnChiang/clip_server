@@ -37,7 +37,10 @@ async def upload_images(
         contents = await f.read()
         file_data.append((f.filename, contents, f.content_type or "image/jpeg"))
 
-    results = await dataset_service.upload_images(project_id, category, file_data)
+    try:
+        results = await dataset_service.upload_images(project_id, category, file_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True, "uploaded": len(results), "images": results}
 
 

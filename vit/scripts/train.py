@@ -104,6 +104,11 @@ def main():
     print(f"Accuracy: {eval_results['accuracy']:.4f}")
     print(eval_results["report"])
 
+    if config.get("calibration", {}).get("enabled", True):
+        calibration = trainer.calibrate()
+        if calibration:
+            print("\nCalibration parameters are embedded in the checkpoint.")
+
 
 if __name__ == "__main__":
     main()

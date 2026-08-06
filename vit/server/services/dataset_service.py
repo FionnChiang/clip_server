@@ -10,6 +10,9 @@ from sqlalchemy import select, func, delete, update
 
 from ..s3_client import s3_client
 from ..database import get_session, Project, DatasetImage
+from ..document_converter import (
+    SUPPORTED_DOC_EXTENSIONS, document_to_images,
+)
 from ..schemas.dataset import (
     CategoryOut, DatasetImageOut, PaginatedImages,
     SplitRequest, UpdateImageCategory, UpdateImageSplit,
@@ -93,45 +96,78 @@ async def upload_images(
 
         results = []
         for filename, data, content_type in files:
-            ext = Path(filename).suffix.lower()
-            if ext not in SUPPORTED_IMAGE_EXTENSIONS:
-                continue
-
-            try:
-                pil_img = Image.open(io.BytesIO(data))
-                width, height = pil_img.size
-            except Exception:
-                width, height = 0, 0
-
-            file_size = len(data)
-            s3_key = f"projects/{project_id}/{category}/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}_{filename}"
-            s3_url = s3_client.upload_bytes(s3_key, data, content_type or "image/jpeg")
-
-            img_record = DatasetImage(
-                project_id=project_id,
-                category=category,
-                s3_url=s3_url,
-                original_filename=filename,
-                file_size=file_size,
-                width=width,
-                height=height,
-            )
-            session.add(img_record)
-            await session.flush()
-
-            results.append(DatasetImageOut(
-                id=img_record.id,
-                category=img_record.category,
-                s3_url=img_record.s3_url,
-                original_filename=img_record.original_filename,
-                file_size=img_record.file_size or 0,
-                width=img_record.width or 0,
-                height=img_record.height or 0,
-                split=img_record.split or "unassigned",
-                uploaded_at=img_record.uploaded_at,
-            ))
+            for page_filename, page_data, page_ctype in _expand_file(filename, data, content_type):
+                results.append(
+                    await _save_image(session, project_id, category, page_filename, page_data, page_ctype)
+                )
 
         return results
+
+
+def _expand_file(filename: str, data: bytes, content_type: str) -> list[tuple[str, bytes, str]]:
+    """将上传文件展开为 (文件名, 字节, content_type) 图片列表。
+
+    - 普通图片：原样返回。
+    - PDF/OFD：按页渲染为 PNG，每页一张，文件名带页码后缀。
+    - 其他类型：返回空列表（跳过）。
+
+    Raises:
+        ValueError: 文档解析失败（加密/损坏/无有效页面）。
+    """
+    ext = Path(filename).suffix.lower()
+    if ext in SUPPORTED_IMAGE_EXTENSIONS:
+        return [(filename, data, content_type)]
+    if ext in SUPPORTED_DOC_EXTENSIONS:
+        stem = Path(filename).stem
+        return [
+            (f"{stem}_p{page_no:03d}.png", png_bytes, "image/png")
+            for page_no, png_bytes in document_to_images(filename, data)
+        ]
+    return []
+
+
+async def _save_image(
+    session,
+    project_id: str,
+    category: str,
+    filename: str,
+    data: bytes,
+    content_type: str,
+) -> DatasetImageOut:
+    """上传单张图片到 S3 并写入 DatasetImage 记录。"""
+    try:
+        pil_img = Image.open(io.BytesIO(data))
+        width, height = pil_img.size
+    except Exception:
+        width, height = 0, 0
+
+    file_size = len(data)
+    s3_key = f"projects/{project_id}/{category}/{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}_{filename}"
+    s3_url = s3_client.upload_bytes(s3_key, data, content_type or "image/jpeg")
+
+    img_record = DatasetImage(
+        project_id=project_id,
+        category=category,
+        s3_url=s3_url,
+        original_filename=filename,
+        file_size=file_size,
+        width=width,
+        height=height,
+    )
+    session.add(img_record)
+    await session.flush()
+
+    return DatasetImageOut(
+        id=img_record.id,
+        category=img_record.category,
+        s3_url=img_record.s3_url,
+        original_filename=img_record.original_filename,
+        file_size=img_record.file_size or 0,
+        width=img_record.width or 0,
+        height=img_record.height or 0,
+        split=img_record.split or "unassigned",
+        uploaded_at=img_record.uploaded_at,
+    )
 
 
 async def list_images(

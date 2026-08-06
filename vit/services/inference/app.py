@@ -3,6 +3,7 @@ import io
 import base64
 import logging
 from pathlib import Path
+from typing import Optional
 
 from PIL import Image
 from fastapi import FastAPI, HTTPException
@@ -29,6 +30,9 @@ _loaded_checkpoint = None
 class PredictRequest(BaseModel):
     image_base64: str
     checkpoint_path: str = ""
+    confidence_threshold: Optional[float] = None
+    margin_threshold: Optional[float] = None
+    temperature: Optional[float] = None
 
 
 class PredictionResult(BaseModel):
@@ -36,6 +40,10 @@ class PredictionResult(BaseModel):
     index: int
     confidence: float
     probabilities: dict[str, float]
+    rejected: bool = False
+    reason: Optional[str] = None
+    original_category: Optional[str] = None
+    original_index: Optional[int] = None
 
 
 def _get_predictor(checkpoint_path: str):
@@ -73,7 +81,12 @@ async def predict(req: PredictRequest):
         predictor = _get_predictor(req.checkpoint_path)
         image_data = base64.b64decode(req.image_base64)
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
-        result = predictor.predict(image)
+        result = predictor.predict(
+            image,
+            confidence_threshold=req.confidence_threshold,
+            margin_threshold=req.margin_threshold,
+            temperature=req.temperature,
+        )
         return PredictionResult(**result)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -87,8 +100,15 @@ async def predict_top_k(req: PredictRequest, k: int = 3):
         predictor = _get_predictor(req.checkpoint_path)
         image_data = base64.b64decode(req.image_base64)
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
-        results = predictor.predict_top_k(image, k=k)
-        probs = predictor.predict(image)
+        results = predictor.predict_top_k(
+            image, k=k, temperature=req.temperature,
+        )
+        probs = predictor.predict(
+            image,
+            confidence_threshold=req.confidence_threshold,
+            margin_threshold=req.margin_threshold,
+            temperature=req.temperature,
+        )
         return {
             "results": [
                 {**r, "probabilities": probs.get("probabilities", {})}
@@ -109,7 +129,12 @@ async def predict_batch(req: list[PredictRequest]):
         for r in req:
             image_data = base64.b64decode(r.image_base64)
             image = Image.open(io.BytesIO(image_data)).convert("RGB")
-            result = predictor.predict(image)
+            result = predictor.predict(
+                image,
+                confidence_threshold=r.confidence_threshold,
+                margin_threshold=r.margin_threshold,
+                temperature=r.temperature,
+            )
             results.append(result)
         return {"results": results}
     except Exception as e:

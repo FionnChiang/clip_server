@@ -32,5 +32,11 @@ services:
   training_url: http://127.0.0.1:8001   # Training service (container or standalone)
   inference_url: http://127.0.0.1:8002  # Inference service (container or standalone)
 
+inference:
+  # 置信度拒绝阈值全局覆盖（可留空/注释，使用 checkpoint 训练时内置的校准参数）
+  confidence_threshold: null             # 最高置信度低于此值 -> 归为"其他"（低置信度）
+  margin_threshold: null                 # top1-top2 间隔低于此值 -> 归为"其他"（难区分）
+  temperature: null                      # 温度缩放覆盖（默认用 checkpoint 内置 T）
+
 training:
   temp_dir: ../tmp

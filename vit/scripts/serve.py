@@ -21,6 +21,12 @@ def main():
     parser.add_argument("--checkpoint", type=str, default="output/best_model.pth")
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--confidence-threshold", type=float, default=None,
+                        help="Override confidence threshold (default: from checkpoint calibration)")
+    parser.add_argument("--margin-threshold", type=float, default=None,
+                        help="Override top1-top2 margin threshold (default: from checkpoint calibration)")
+    parser.add_argument("--temperature", type=float, default=None,
+                        help="Override temperature scaling (default: from checkpoint calibration)")
     args = parser.parse_args()
 
     checkpoint_path = args.checkpoint
@@ -31,7 +37,14 @@ def main():
     print(f"Checkpoint: {checkpoint_path}")
     print(f"API docs:   http://{args.host}:{args.port}/docs")
 
-    serve(checkpoint_path=checkpoint_path, host=args.host, port=args.port)
+    serve(
+        checkpoint_path=checkpoint_path,
+        host=args.host,
+        port=args.port,
+        confidence_threshold=args.confidence_threshold,
+        margin_threshold=args.margin_threshold,
+        temperature=args.temperature,
+    )
 
 
 if __name__ == "__main__":

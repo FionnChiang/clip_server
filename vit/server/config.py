@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 import yaml
 
 
@@ -134,6 +135,28 @@ class ServerConfig:
     @property
     def inference_url(self) -> str:
         return os.environ.get("INFERENCE_SERVICE_URL") or self._data.get("services", {}).get("inference_url", "http://127.0.0.1:8002")
+
+    # --- Inference overrides (None = 使用 checkpoint 内置校准参数) ---
+    def _float_or_none(self, key: str, default: Optional[float] = None) -> Optional[float]:
+        value = self._data.get("inference", {}).get(key)
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    @property
+    def inference_confidence_threshold(self) -> Optional[float]:
+        return self._float_or_none("confidence_threshold")
+
+    @property
+    def inference_margin_threshold(self) -> Optional[float]:
+        return self._float_or_none("margin_threshold")
+
+    @property
+    def inference_temperature(self) -> Optional[float]:
+        return self._float_or_none("temperature")
 
     # --- Training ---
     @property
