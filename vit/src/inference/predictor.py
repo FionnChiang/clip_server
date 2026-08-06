@@ -1,13 +1,17 @@
 from pathlib import Path
+import os
 from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
+import logging
 from PIL import Image
 from torchvision import transforms
 
 from ..data.dataset import _build_transform
 from ..models.classifier import LayoutClassifier
+
+logger = logging.getLogger(__name__)
 
 
 class LayoutPredictor:
@@ -49,6 +53,15 @@ class LayoutPredictor:
         model_path = Path(raw_path)
         if not model_path.is_absolute():
             model_path = (checkpoint_path.parent / model_path).resolve()
+
+        # 路径兜底：训练机上的模型路径在部署环境不可用时，回退到
+        # CLIP_MODELS_DIR 环境变量或容器内默认路径（/shared/models）
+        if not model_path.exists():
+            for candidate in (os.environ.get("CLIP_MODELS_DIR"), "/shared/models"):
+                if candidate and Path(candidate).exists():
+                    model_path = Path(candidate)
+                    logger.info(f"Model path {raw_path!r} not found, falling back to {model_path}")
+                    break
 
         self.model = LayoutClassifier(
             model_path=str(model_path),

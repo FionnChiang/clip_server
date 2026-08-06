@@ -1,0 +1,11 @@
+# 构建上下文排除：大文件/产物/密钥不进镜像
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/node_modules/
+frontend/dist/
+output/
+data/
+tmp/
+configs/server_config.yaml
+.DS_Store

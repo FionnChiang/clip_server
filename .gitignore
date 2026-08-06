@@ -1,8 +1,10 @@
 # === Model files (large binary, not for VCS) ===
 /models/
+vit/models/
 
 # === Training output (checkpoints, history) ===
 /output/
+vit/output/
 
 # === Config with secrets (keep example template instead) ===
 vit/configs/server_config.yaml

@@ -1,5 +1,10 @@
 version: "3.8"
 
+# 说明：
+# - 代码通过 bind mount 挂载（镜像内已 COPY 一份作为基线），服务器整体拷贝项目目录即可，改代码后重启容器生效
+# - CLIP 模型权重已 COPY 进 training/inference 镜像（/shared/models），无需挂载
+# - 前端 dist 由 backend 容器启动时用镜像内 node_modules 离线重建，服务器无需 node
+# - GPU 训练/推理：服务器需安装 NVIDIA 驱动 + nvidia-container-toolkit
 services:
   backend:
     platform: linux/amd64
@@ -10,11 +15,11 @@ services:
       - "8000:8000"
     volumes:
       - ../output:/shared/output
-      - ../models:/shared/models:ro
       - ../server:/app/server
       - ../src:/app/src
       - ../configs:/app/configs
-      - ../frontend/dist:/app/frontend/dist
+      - ../frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
     environment:
       - TRAINING_SERVICE_URL=http://training:8001
       - INFERENCE_SERVICE_URL=http://inference:8002
@@ -32,16 +37,16 @@ services:
       - "8001:8001"
     volumes:
       - ../output:/shared/output
-      - ../models:/shared/models:ro
       - ../src:/app/src:ro
+      - ../services/training/app.py:/app/app.py
       - training_tmp:/shared/tmp
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     restart: unless-stopped
 
   inference:
@@ -54,22 +59,16 @@ services:
     volumes:
       - ../output:/shared/output
       - ../src:/app/src:ro
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      - ../services/inference/app.py:/app/app.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     restart: unless-stopped
-
-  frontend-build:
-    image: node:18
-    working_dir: /app
-    command: >
-      sh -c "npm install --registry=https://registry.npmmirror.com && npm run build"
-    volumes:
-      - ../frontend:/app
 
 volumes:
   training_tmp:
+  frontend_node_modules:

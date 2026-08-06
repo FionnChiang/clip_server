@@ -107,6 +107,48 @@ docker-compose up -d
 # Backend :8000 | Training :8001 | Inference :8002
 ```
 
+### 6. 离线服务器部署（内网无网络环境）
+
+镜像构建完成后，所有需要联网下载的内容（Python 依赖、CJK 字体、CLIP 模型权重、前端 node_modules 与初始 dist）都已打入镜像，内网服务器无需任何外网访问。
+
+**构建机（联网，一次性）：**
+
+```bash
+cd vit
+docker compose build            # 构建 backend / training / inference 三个镜像
+docker save backend training inference -o images.tar
+# 预期 6~7GB（含 CUDA/cuDNN 层），拷到离线服务器后：
+```
+
+**服务器（离线）：**
+
+```bash
+docker load < images.tar
+# 项目目录只需拷贝到服务器（代码经 bind mount 挂载，改代码后重启容器即生效）：
+#   vit/ 目录（至少包含 configs/server_config.yaml）
+#   可选：vit/frontend/dist 等——容器启动时会自动用镜像内 node_modules 离线重建 dist
+cd vit/services && docker compose up -d
+```
+
+**服务器前置条件：**
+- NVIDIA GPU 驱动 + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)（GPU 训练/推理必需）
+- MySQL 数据库、S3/MinIO 对象存储（内网可达；训练数据经 S3 presigned URL 下载）
+- `vit/configs/server_config.yaml`：`mysql.*` 与 `s3.*` 必须填**服务器内网可达地址**（容器内 127.0.0.1 指向容器自身，需用内网 IP 或容器网络别名）
+
+**验证：**
+
+```bash
+curl http://<server>:8000/api/health    # backend
+curl http://<server>:8001/api/health    # training（含 cuda_available）
+curl http://<server>:8002/api/health    # inference
+# 浏览器访问 http://<server>:8000 应看到管理界面（首次启动日志含 "Frontend build OK"）
+```
+
+**日常更新（无需重建镜像）：**
+- 改后端代码（`server/`、`src/`、`services/*/app.py`）→ 重启对应容器即可（Python 无编译）
+- 改前端源码（`frontend/`）→ 重启 backend 容器，启动时自动 `npm run build` 生成新 dist
+- ⚠️ 新增依赖需外网重建镜像：前端改 `package.json`（node_modules 快照在镜像内）、后端引用镜像中没有的新 Python 包
+
 ---
 
 ## 端到端流程（训练 → 推理）

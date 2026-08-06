@@ -1,12 +1,6 @@
-torch==2.5.1
-torchvision==0.20.1
-transformers==4.44.2
-safetensors>=0.3.0
+# Web 后端服务依赖（server 不加载模型，无需 torch 系依赖）
 pyyaml>=6.0
 pillow>=9.0.0
-scikit-learn>=1.0.0
-tqdm>=4.60.0
-numpy>=1.26,<3
 fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
 python-multipart>=0.0.6
